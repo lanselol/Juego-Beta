@@ -1,6 +1,6 @@
 # Fantasy Battle - Juego de Peleas por Turnos
 
-Un emocionante juego de peleas por turnos ambientado en un mundo de fantasía donde puedes elegir entre 5 clases únicas de personajes, escalar una torre de 100 pisos llena de desafíos, gestionar tu economía para comprar objetos poderosos, mejorar tus habilidades con el maestro de habilidades y aprovechar las fortalezas y debilidades entre clases.
+Un emocionante juego de peleas por turnos ambientado en un mundo de fantasía donde puedes elegir entre 5 clases únicas de personajes, escalar una torre de 100 pisos llena de desafíos, gestionar tu economía para comprar objetos poderosos, mejorar tus habilidades con el maestro de habilidades, disfrutar de una narrativa épica con toma de decisiones y aprovechar las fortalezas y debilidades entre clases.
 
 ## 🎮 Características
 
@@ -32,6 +32,19 @@ Un emocionante juego de peleas por turnos ambientado en un mundo de fantasía do
 - **30% menos de daño** cuando tienes desventaja de clase
 - **Indicadores visuales** de fortalezas y debilidades
 - **Mensajes informativos** durante el combate
+
+### Modo Historia - Narrativa Épica
+- **Historia completa** con 4 capítulos y toma de decisiones
+- **Sistema de moral** que afecta el desarrollo de la historia
+- **Dos finales únicos** - Final bueno (redención) y final malo (corrupción)
+- **Pantalla de Game Over** para decisiones que llevan a finales prematuros
+- **Integración perfecta** con el sistema de batalla
+
+### Sistema de Guardado
+- **Máximo 2 archivos de guardado** para mantener simplicidad
+- **Guardado automático** en puntos clave de la historia
+- **Información completa** - Progreso, objetos, historia y decisiones
+- **Gestión eficiente** con reemplazo automático del archivo más antiguo
 
 ### 5 Clases de Personajes
 
@@ -195,6 +208,19 @@ Los jefes comienzan con objetos adicionales según su clase:
 - **M**: Salir del maestro de habilidades
 - **Indicadores visuales**: Mejoras ya compradas se muestran en verde
 
+### Modo Historia
+- **Flechas Arriba/Abajo**: Navegar entre opciones
+- **Enter**: Seleccionar opción
+- **S**: Guardar partida
+- **L**: Cargar partida
+- **ESC**: Volver al menú principal
+
+### Sistema de Guardado
+- **Flechas Arriba/Abajo**: Navegar entre archivos guardados
+- **Enter**: Cargar partida seleccionada
+- **D**: Eliminar partida
+- **ESC**: Volver a la historia
+
 ### Progresión del Juego
 - **Pisos 1-4**: Enemigos normales con dificultad creciente
 - **Piso 5**: Primera tienda disponible
@@ -273,6 +299,22 @@ Los jefes comienzan con objetos adicionales según su clase:
 2. Instala pygame: `pip install pygame`
 3. Ejecuta el juego: `python main/main.py`
 
+## 🎮 Cómo Jugar
+
+### Modo Batalla (Original)
+1. Selecciona tu clase de héroe (1-5)
+2. Combate enemigos en pisos progresivos
+3. Compra objetos en la tienda cada 5 pisos
+4. Mejora habilidades después de derrotar jefes
+5. Llega al piso 100 para completar el juego
+
+### Modo Historia (Nuevo)
+1. Presiona 'H' en la selección de clase
+2. Lee la narrativa y toma decisiones
+3. Guarda tu progreso con 'S'
+4. Carga partidas anteriores con 'L'
+5. Completa la historia para desbloquear el modo libre
+
 ## 🎨 Características Técnicas
 
 - **Motor**: Pygame
@@ -284,6 +326,9 @@ Los jefes comienzan con objetos adicionales según su clase:
 - **Jefes**: 10 jefes únicos con habilidades especiales
 - **Economía**: Sistema de monedas y tienda
 - **Objetos**: 6 tipos con efectos únicos
+- **Narrativa**: Sistema de historia con toma de decisiones
+- **Guardado**: Sistema de archivos con máximo 2 partidas
+- **Optimización**: Cache de texto y gestión de memoria
 - **Mejoras**: Sistema de progresión permanente de habilidades
 - **Visualización**: Números redondeados para mejor legibilidad
 - **Fortalezas**: Sistema de ventajas y desventajas entre clases

@@ -1,6 +1,12 @@
 import pygame
 import random
 import sys
+import os
+import gc
+import weakref
+
+# Agregar el directorio raíz al path para que Python pueda encontrar los módulos
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Importar las clases organizadas
 from clases.personaje import Personaje, ClasePersonaje
@@ -10,14 +16,17 @@ from sistema_combate.maestro_habilidades import MaestroHabilidades
 from sistema_combate.generador_enemigos import GeneradorEnemigos
 from interfaz.renderizador import Renderizador
 
+# Importar modo historia
+from modo_historia.controlador_historia import ControladorHistoria
+
 # Inicializar pygame
 pygame.init()
 
 # Configuración de la ventana
-ANCHO = 1200
-ALTO = 800
-ventana = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Fantasy Battle - Juego de Peleas por Turnos")
+ANCHO = 1920
+ALTO = 1080
+ventana = pygame.display.set_mode((ANCHO, ALTO), pygame.FULLSCREEN)
+pygame.display.set_caption("Fantasy Battle - Juego de Peleas por Turnos") 
 
 class Juego:
     def __init__(self):
@@ -49,7 +58,43 @@ class Juego:
         # Renderizador
         self.renderizador = Renderizador(ventana, ANCHO, ALTO)
         
+        # Modo historia
+        self.controlador_historia = ControladorHistoria(ventana, ANCHO, ALTO)
+        self.controlador_historia.conectar_juego_principal(self)
+        self.modo_historia_activado = False
+        
+        # Optimizaciones de memoria
+        self._limpiar_memoria()
+        
+    def _limpiar_memoria(self):
+        """Limpia la memoria no utilizada"""
+        gc.collect()
+        
+    def _verificar_enemigo(self):
+        """Verifica que el enemigo existe, si no, crea uno nuevo"""
+        if not self.enemigo:
+            print("DEBUG: ERROR - No hay enemigo! Creando uno nuevo...")
+            self.enemigo = self.crear_enemigo()
+            return False
+        return True
+    
+    def _limpiar_enemigo_anterior(self):
+        """Limpia la memoria del enemigo anterior sin eliminarlo"""
+        if self.enemigo:
+            # Limpiar objetos del enemigo
+            if hasattr(self.enemigo, 'bolsa_objetos'):
+                self.enemigo.bolsa_objetos.clear()
+            if hasattr(self.enemigo, 'efectos_temporales'):
+                self.enemigo.efectos_temporales.clear()
+            # NO establecer self.enemigo = None aquí, solo limpiar memoria
+            gc.collect()
+        
     def dar_recompensa_oro(self):
+        # Verificar que el enemigo existe
+        if not self.enemigo:
+            print("DEBUG: ERROR - No hay enemigo en dar_recompensa_oro!")
+            return 0
+        
         # Recompensa base por piso
         oro_base = 10 + (self.piso_actual * 2)
         
@@ -97,14 +142,31 @@ class Juego:
             return f"No tienes suficientes monedas. Necesitas {mejora['precio']} pero tienes {self.monedas_oro}"
     
     def crear_enemigo(self):
-        return self.generador_enemigos.crear_enemigo(self.piso_actual)
+        # Crear nuevo enemigo directamente
+        enemigo = self.generador_enemigos.crear_enemigo(self.piso_actual)
+        
+        # Debug: Verificar que el enemigo se creó correctamente
+        print(f"DEBUG: Enemigo creado - Nombre: {enemigo.nombre}, Vida: {enemigo.vida_actual}/{enemigo.vida_maxima}, Es Jefe: {enemigo.es_jefe}")
+        
+        return enemigo
     
     def dibujar_interfaz(self):
         ventana.fill((0, 0, 0))  # NEGRO
         
         if self.estado == "seleccion_clase":
             self.renderizador.dibujar_seleccion_clase()
+        elif self.estado == "modo_historia":
+            self.controlador_historia.dibujar()
         elif self.estado == "batalla":
+            # Verificar que el enemigo existe
+            self._verificar_enemigo()
+            
+            # Debug: Verificar estado del enemigo
+            if self.enemigo:
+                print(f"DEBUG: Dibujando batalla - Enemigo: {self.enemigo.nombre}, Vida: {self.enemigo.vida_actual}/{self.enemigo.vida_maxima}")
+            else:
+                print("DEBUG: ERROR - No hay enemigo para dibujar!")
+            
             if self.estado_tienda:
                 self.renderizador.dibujar_tienda(self.tienda, self.monedas_oro, self.piso_actual, self.objeto_seleccionado_tienda)
             elif self.estado_maestro:
@@ -122,8 +184,24 @@ class Juego:
                 return False
             
             if evento.type == pygame.KEYDOWN:
+                # Salir de pantalla completa con F11 o ESC
+                if evento.key == pygame.K_F11 or evento.key == pygame.K_ESCAPE:
+                    global ANCHO, ALTO
+                    if pygame.display.get_surface().get_flags() & pygame.FULLSCREEN:
+                        pygame.display.set_mode((1200, 800))
+                        # Actualizar dimensiones para ventana normal
+                        ANCHO, ALTO = 1200, 800
+                    else:
+                        pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
+                        # Actualizar dimensiones para pantalla completa
+                        ANCHO, ALTO = 1920, 1080
+                
                 if self.estado == "seleccion_clase":
                     self.manejar_seleccion_clase(evento.key)
+                elif self.estado == "modo_historia":
+                    resultado = self.controlador_historia.manejar_evento_individual(evento)
+                    if resultado is not None:
+                        return resultado
                 elif self.estado == "batalla":
                     if self.estado_tienda:
                         self.manejar_tienda(evento.key)
@@ -156,6 +234,10 @@ class Juego:
             self.jugador = Personaje("Héroe", clases[4])
             self.enemigo = self.crear_enemigo()
             self.estado = "batalla"
+        elif tecla == pygame.K_h:
+            # Activar modo historia
+            self.estado = "modo_historia"
+            self.controlador_historia.reiniciar()
     
     def manejar_tienda(self, tecla):
         if tecla == pygame.K_UP:
@@ -240,11 +322,22 @@ class Juego:
             
             # Avanzar al siguiente piso
             self.piso_actual += 1
+            
+            # Crear nuevo enemigo
             self.enemigo = self.crear_enemigo()
+            
             self.jugador.vida_actual = self.jugador.vida_maxima  # Curar al jugador
             self.jugador.energia_actual = self.jugador.energia   # Recuperar energía
+            
+            # Limpiar memoria después de cada piso (pero mantener el enemigo)
+            gc.collect()
     
     def ejecutar_turno_enemigo(self):
+        if not self.enemigo:
+            print("DEBUG: ERROR - No hay enemigo en ejecutar_turno_enemigo!")
+            self.turno = "jugador"
+            return
+        
         if self.enemigo.estado == "Paralizado":
             self.mensaje = f"{self.enemigo.nombre} está paralizado y no puede atacar"
             self.turno = "jugador"
@@ -268,9 +361,15 @@ class Juego:
             self.generador_enemigos.reiniciar_jefes()
             self.monedas_oro = 0  # Perder todo el oro
             self.estado = "seleccion_clase"
+            
+            # Limpiar memoria al reiniciar
+            self._limpiar_memoria()
     
     def actualizar(self):
         if self.estado == "batalla" and self.turno == "enemigo":
+            # Verificar que el enemigo existe
+            self._verificar_enemigo()
+            
             # Pequeño delay para el turno del enemigo
             pygame.time.wait(1000)
             self.ejecutar_turno_enemigo()
@@ -280,6 +379,24 @@ class Juego:
             self.jugador.actualizar_estado()
         if self.enemigo:
             self.enemigo.actualizar_estado()
+        else:
+            print("DEBUG: ERROR - No hay enemigo para actualizar!")
+    
+    def limpiar_recursos(self):
+        """Limpia todos los recursos al cerrar el juego"""
+        if self.jugador:
+            self.jugador.limpiar_objetos()
+        if self.enemigo:
+            self.enemigo.limpiar_objetos()
+        
+        # Limpiar cache del renderizador
+        self.renderizador.limpiar_cache()
+        
+        # Limpiar recursos del modo historia
+        self.controlador_historia.limpiar_recursos()
+        
+        # Limpiar memoria
+        self._limpiar_memoria()
 
 def main():
     juego = Juego()
@@ -292,6 +409,8 @@ def main():
         juego.dibujar_interfaz()
         reloj.tick(60)
     
+    # Limpiar recursos antes de salir
+    juego.limpiar_recursos()
     pygame.quit()
     sys.exit()
 

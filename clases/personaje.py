@@ -50,6 +50,13 @@ class Personaje:
         self.agregar_objeto(pocion_vida)
         self.agregar_objeto(pocion_energia)
     
+    def limpiar_objetos(self):
+        """Limpia los objetos para liberar memoria"""
+        self.bolsa_objetos.clear()
+        self.efectos_temporales.clear()
+        self.veneno_activo = 0
+        self.velocidad_extra = False
+    
     def obtener_modificador_clase(self, objetivo):
         """Retorna el modificador de daño basado en las fortalezas y debilidades entre clases"""
         fortalezas = {
@@ -199,7 +206,7 @@ class Personaje:
         elif self.clase == ClasePersonaje.ARQUERO:
             return 90
         elif self.clase == ClasePersonaje.PALADIN:
-            return 110
+            return 100
         elif self.clase == ClasePersonaje.ASESINO:
             return 85
         return 100
@@ -247,32 +254,32 @@ class Personaje:
         if self.clase == ClasePersonaje.GUERRERO:
             return [
                 {"nombre": "Espadazo", "daño": 1.2, "energia": 20, "descripcion": "Ataque básico con espada"},
-                {"nombre": "Golpe Defensivo", "daño": 0.8, "energia": 15, "descripcion": "Ataque que aumenta defensa"},
-                {"nombre": "Furia Berserker", "daño": 2.0, "energia": 50, "descripcion": "Ataque devastador"}
+                {"nombre": "Golpe Defensivo", "daño": 1.0, "energia": 25, "descripcion": "Ataque que aumenta defensa"},
+                {"nombre": "Furia Berserker", "daño": 2.0, "energia": 50, "descripcion": "Ataque poderoso del guerrero"}
             ]
         elif self.clase == ClasePersonaje.MAGO:
             return [
                 {"nombre": "Bola de Fuego", "daño": 1.5, "energia": 30, "descripcion": "Lanza una bola de fuego"},
-                {"nombre": "Rayo Eléctrico", "daño": 1.8, "energia": 40, "descripcion": "Rayo que puede paralizar"},
-                {"nombre": "Meteorito", "daño": 2.5, "energia": 70, "descripcion": "Invoca un meteorito"}
+                {"nombre": "Rayo Eléctrico", "daño": 1.3, "energia": 25, "descripcion": "Rayo que puede paralizar"},
+                {"nombre": "Meteorito", "daño": 2.5, "energia": 60, "descripcion": "Invoca un meteorito devastador"}
             ]
         elif self.clase == ClasePersonaje.ARQUERO:
             return [
-                {"nombre": "Flecha Rápida", "daño": 1.1, "energia": 15, "descripcion": "Dispara una flecha rápida"},
-                {"nombre": "Lluvia de Flechas", "daño": 1.6, "energia": 35, "descripcion": "Múltiples flechas"},
-                {"nombre": "Flecha Venenosa", "daño": 1.3, "energia": 25, "descripcion": "Flecha con veneno"}
+                {"nombre": "Flecha Rápida", "daño": 1.1, "energia": 15, "descripcion": "Flecha rápida y precisa"},
+                {"nombre": "Lluvia de Flechas", "daño": 1.4, "energia": 35, "descripcion": "Múltiples flechas"},
+                {"nombre": "Flecha Venenosa", "daño": 1.2, "energia": 30, "descripcion": "Flecha con veneno"}
             ]
         elif self.clase == ClasePersonaje.PALADIN:
             return [
                 {"nombre": "Golpe Sagrado", "daño": 1.3, "energia": 25, "descripcion": "Ataque bendecido"},
-                {"nombre": "Curación", "daño": -0.8, "energia": 30, "descripcion": "Se cura a sí mismo"},
-                {"nombre": "Escudo Divino", "daño": 0.5, "energia": 40, "descripcion": "Aumenta defensa temporalmente"}
+                {"nombre": "Curación", "daño": -1.0, "energia": 40, "descripcion": "Cura al objetivo"},
+                {"nombre": "Escudo Divino", "daño": 0.8, "energia": 35, "descripcion": "Protección divina"}
             ]
         elif self.clase == ClasePersonaje.ASESINO:
             return [
                 {"nombre": "Puñalada", "daño": 1.4, "energia": 20, "descripcion": "Ataque rápido con puñal"},
-                {"nombre": "Golpe Crítico", "daño": 2.2, "energia": 45, "descripcion": "Alto daño crítico"},
-                {"nombre": "Invisibilidad", "daño": 1.0, "energia": 35, "descripcion": "Ataque desde las sombras"}
+                {"nombre": "Golpe Crítico", "daño": 2.2, "energia": 45, "descripcion": "Ataque con alta probabilidad de crítico"},
+                {"nombre": "Invisibilidad", "daño": 1.8, "energia": 40, "descripcion": "Ataque desde las sombras"}
             ]
         return []
     
@@ -282,54 +289,51 @@ class Personaje:
         
         self.energia_actual -= habilidad["energia"]
         
-        # Calcular daño
+        # Calcular daño base
         daño_base = self.ataque * habilidad["daño"]
         
-        # Aplicar modificador de fortaleza/debilidad entre clases
+        # Aplicar modificadores de clase
         modificador_clase = self.obtener_modificador_clase(objetivo)
-        daño_base *= modificador_clase
-        
-        # Modificadores por clase
-        if self.clase == ClasePersonaje.ASESINO and random.random() < (0.3 + self.probabilidad_critico_extra):
-            daño_base *= 1.5  # 30% + mejoras de probabilidad de crítico
-        elif self.clase == ClasePersonaje.MAGO and random.random() < (0.2 + self.probabilidad_critico_extra):
-            daño_base *= 1.3  # 20% + mejoras de probabilidad de crítico
+        daño_final = daño_base * modificador_clase
         
         # Aplicar defensa del objetivo
-        daño_final = max(1, daño_base - objetivo.defensa)
+        daño_final = max(1, daño_final - objetivo.defensa)
         
+        # Sistema de crítico
+        probabilidad_critico = 0.1 + self.probabilidad_critico_extra
+        if random.random() < probabilidad_critico:
+            daño_final *= 2
+            mensaje_critico = " ¡CRÍTICO!"
+        else:
+            mensaje_critico = ""
+        
+        # Aplicar daño o curación
         if habilidad["daño"] < 0:  # Habilidad de curación
             curacion = abs(daño_final)
-            self.vida_actual = min(self.vida_maxima, self.vida_actual + curacion)
-            return f"{self.nombre} se cura {curacion} puntos de vida"
+            objetivo.vida_actual = min(objetivo.vida_maxima, objetivo.vida_actual + curacion)
+            return f"{self.nombre} usa {habilidad['nombre']} y cura {round(curacion)} puntos de vida{mensaje_critico}"
         else:
             objetivo.vida_actual = max(0, objetivo.vida_actual - daño_final)
             
             # Efectos especiales
-            if self.clase == ClasePersonaje.MAGO and "Rayo" in habilidad["nombre"]:
-                if random.random() < 0.3:
-                    objetivo.estado = "Paralizado"
-                    objetivo.turnos_estado = 2
+            efectos_especiales = ""
+            if habilidad["nombre"] == "Rayo Eléctrico" and random.random() < 0.3:
+                objetivo.estado = "Paralizado"
+                objetivo.turnos_estado = 2
+                efectos_especiales = " ¡Paralizado!"
             
-            # Mensaje con información de fortaleza/debilidad
-            mensaje_base = f"{self.nombre} usa {habilidad['nombre']} y causa {round(daño_final)} de daño a {objetivo.nombre}"
-            
-            if modificador_clase > 1.0:
-                mensaje_base += " (¡Fortaleza!)"
-            elif modificador_clase < 1.0:
-                mensaje_base += " (Debilidad)"
-            
-            return mensaje_base
+            return f"{self.nombre} usa {habilidad['nombre']} y causa {round(daño_final)} de daño{mensaje_critico}{efectos_especiales}"
     
     def recuperar_energia(self):
-        recuperacion = self.energia // 10
+        recuperacion = self.energia * 0.3
         self.energia_actual = min(self.energia, self.energia_actual + recuperacion)
     
     def actualizar_estado(self):
-        if self.estado == "Paralizado" and self.turnos_estado > 0:
-            self.turnos_estado -= 1
-            if self.turnos_estado == 0:
-                self.estado = "Normal"
-        
         # Actualizar efectos temporales
-        self.actualizar_efectos() 
+        self.actualizar_efectos()
+        
+        # Actualizar estado de paralización
+        if self.estado == "Paralizado":
+            self.turnos_estado -= 1
+            if self.turnos_estado <= 0:
+                self.estado = "Normal" 
