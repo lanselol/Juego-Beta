@@ -26,9 +26,44 @@ class Renderizador:
         self.fuente = pygame.font.Font(None, 36)
         self.fuente_grande = pygame.font.Font(None, 48)
         self.fuente_pequena = pygame.font.Font(None, 24)
+        
+        # Ajustar tamaños de fuente según la resolución
+        self._ajustar_fuentes()
+    
+    def _ajustar_fuentes(self):
+        """Ajusta el tamaño de las fuentes según la resolución de pantalla"""
+        if self.ancho >= 1920:  # Pantalla completa
+            self.fuente = pygame.font.Font(None, 36)
+            self.fuente_grande = pygame.font.Font(None, 48)
+            self.fuente_pequena = pygame.font.Font(None, 24)
+        elif self.ancho >= 1200:  # Pantalla mediana
+            self.fuente = pygame.font.Font(None, 32)
+            self.fuente_grande = pygame.font.Font(None, 42)
+            self.fuente_pequena = pygame.font.Font(None, 22)
+        else:  # Pantalla pequeña
+            self.fuente = pygame.font.Font(None, 28)
+            self.fuente_grande = pygame.font.Font(None, 36)
+            self.fuente_pequena = pygame.font.Font(None, 20)
+    
+    def _centrar_horizontal(self, elemento_ancho):
+        """Centra un elemento horizontalmente en la pantalla"""
+        return (self.ancho - elemento_ancho) // 2
+    
+    def _centrar_vertical(self, elemento_alto, offset_y=0):
+        """Centra un elemento verticalmente en la pantalla con offset opcional"""
+        return (self.alto - elemento_alto) // 2 + offset_y
+    
+    def _ajustar_tamano_elemento(self, tamano_base):
+        """Ajusta el tamaño de los elementos según la resolución"""
+        if self.ancho >= 1920:
+            return tamano_base
+        elif self.ancho >= 1200:
+            return int(tamano_base * 0.8)
+        else:
+            return int(tamano_base * 0.6)
     
     def dibujar_seleccion_clase(self):
-        # Fondo degradado mejorado para 1920x1080
+        # Fondo degradado mejorado
         for y in range(self.alto):
             color = (
                 int(15 + (y / self.alto) * 35),
@@ -37,17 +72,22 @@ class Renderizador:
             )
             pygame.draw.line(self.ventana, color, (0, y), (self.ancho, y))
         
-        # Título principal con sombra mejorada
+        # Título principal centrado
         titulo = self.fuente_grande.render("FANTASY BATTLE", True, DORADO)
         sombra = self.fuente_grande.render("FANTASY BATTLE", True, NEGRO)
-        self.ventana.blit(sombra, (self.ancho//2 - titulo.get_width()//2 + 4, 104))
-        self.ventana.blit(titulo, (self.ancho//2 - titulo.get_width()//2, 100))
+        titulo_x = self._centrar_horizontal(titulo.get_width())
+        titulo_y = self._centrar_vertical(100, -300)
+        
+        self.ventana.blit(sombra, (titulo_x + 4, titulo_y + 4))
+        self.ventana.blit(titulo, (titulo_x, titulo_y))
         
         # Subtítulo centrado
         subtitulo = self.fuente.render("Selecciona tu clase", True, BLANCO)
-        self.ventana.blit(subtitulo, (self.ancho//2 - subtitulo.get_width()//2, 180))
+        subtitulo_x = self._centrar_horizontal(subtitulo.get_width())
+        subtitulo_y = titulo_y + 80
+        self.ventana.blit(subtitulo, (subtitulo_x, subtitulo_y))
         
-        # Clases disponibles con cajas decorativas - Distribuidas perfectamente para 1920x1080
+        # Clases disponibles con cajas decorativas - Centradas
         clases = [
             (ClasePersonaje.GUERRERO, "Guerrero", "Fuerte y resistente, especialista en combate cuerpo a cuerpo", ROJO, VERDE_OSCURO),
             (ClasePersonaje.MAGO, "Mago", "Poder mágico devastador, controla elementos y hechizos", MORADO, AZUL_OSCURO),
@@ -56,13 +96,14 @@ class Renderizador:
             (ClasePersonaje.ASESINO, "Asesino", "Ataques críticos rápidos, sigilo y precisión", NARANJA, ROJO_OSCURO)
         ]
         
-        # Calcular posiciones centradas para 1920x1080
-        clase_ancho = 700
-        clase_x = (self.ancho - clase_ancho) // 2
-        clase_espaciado = 110
+        # Calcular posiciones centradas
+        clase_ancho = self._ajustar_tamano_elemento(700)
+        clase_x = self._centrar_horizontal(clase_ancho)
+        clase_espaciado = self._ajustar_tamano_elemento(110)
+        clase_inicio_y = subtitulo_y + 80
         
         for i, (clase, nombre, desc, color, color_oscuro) in enumerate(clases):
-            y = 250 + i * clase_espaciado
+            y = clase_inicio_y + i * clase_espaciado
             
             # Caja principal con sombra
             pygame.draw.rect(self.ventana, (20, 30, 20), (clase_x-12, y-12, clase_ancho+4, 84))
@@ -81,9 +122,9 @@ class Renderizador:
             desc_texto = self.fuente_pequena.render(desc, True, BLANCO)
             self.ventana.blit(desc_texto, (clase_x + 80, y + 45))
         
-        # Modo historia con caja decorativa - Posicionado mejor para 1920x1080
+        # Modo historia con caja decorativa - Centrado
         x_historia = clase_x
-        y_historia = 820
+        y_historia = clase_inicio_y + len(clases) * clase_espaciado + 20
         pygame.draw.rect(self.ventana, (30, 20, 15), (x_historia-12, y_historia-12, clase_ancho+4, 84))
         pygame.draw.rect(self.ventana, MARRON, (x_historia-10, y_historia-10, clase_ancho, 80))
         pygame.draw.rect(self.ventana, ROSA, (x_historia-5, y_historia-5, clase_ancho-10, 70), 3)
@@ -94,19 +135,25 @@ class Renderizador:
         desc_historia = self.fuente_pequena.render("Aventura narrativa con decisiones que afectan la historia", True, BLANCO)
         self.ventana.blit(desc_historia, (x_historia + 20, y_historia + 45))
         
-        # Instrucciones con fondo mejorado - Posicionadas en la parte inferior para 1920x1080
+        # Instrucciones centradas en la parte inferior
         instrucciones = self.fuente.render("Presiona 1-5 para seleccionar clase o H para modo historia", True, AMARILLO)
-        fondo_inst = pygame.Rect(50, 980, instrucciones.get_width() + 60, 60)
+        fondo_inst = pygame.Rect(
+            self._centrar_horizontal(instrucciones.get_width() + 60),
+            self.alto - 80,
+            instrucciones.get_width() + 60,
+            60
+        )
         pygame.draw.rect(self.ventana, (20, 20, 20), fondo_inst)
         pygame.draw.rect(self.ventana, AMARILLO, fondo_inst, 4)
-        self.ventana.blit(instrucciones, (80, 1000))
+        self.ventana.blit(instrucciones, (fondo_inst.x + 30, fondo_inst.y + 20))
         
-        # Información adicional del juego
+        # Información adicional del juego centrada
         info_texto = self.fuente_pequena.render("Fantasy Battle - Juego de Peleas por Turnos", True, GRIS)
-        self.ventana.blit(info_texto, (self.ancho - 400, 1020))
+        info_x = self._centrar_horizontal(info_texto.get_width())
+        self.ventana.blit(info_texto, (info_x, self.alto - 30))
     
     def dibujar_tienda(self, tienda, monedas_oro, piso_actual, objeto_seleccionado):
-        # Fondo de tienda mejorado para 1920x1080
+        # Fondo de tienda mejorado
         for y in range(self.alto):
             color = (
                 int(25 + (y / self.alto) * 25),
@@ -115,15 +162,16 @@ class Renderizador:
             )
             pygame.draw.line(self.ventana, color, (0, y), (self.ancho, y))
         
-        # Título de la tienda con sombra mejorada
+        # Título de la tienda centrado
         titulo = self.fuente_grande.render("TIENDA", True, DORADO)
         sombra = self.fuente_grande.render("TIENDA", True, NEGRO)
-        self.ventana.blit(sombra, (self.ancho//2 - titulo.get_width()//2 + 4, 24))
-        self.ventana.blit(titulo, (self.ancho//2 - titulo.get_width()//2, 20))
+        titulo_x = self._centrar_horizontal(titulo.get_width())
+        self.ventana.blit(sombra, (titulo_x + 4, 24))
+        self.ventana.blit(titulo, (titulo_x, 20))
         
-        # Panel de información del jugador - Posicionado mejor para 1920x1080
-        panel_ancho = 600
-        panel_x = 80
+        # Panel de información del jugador - Centrado
+        panel_ancho = self._ajustar_tamano_elemento(600)
+        panel_x = self._centrar_horizontal(panel_ancho)
         pygame.draw.rect(self.ventana, (70, 50, 90), (panel_x, 80, panel_ancho, 120))
         pygame.draw.rect(self.ventana, DORADO, (panel_x, 80, panel_ancho, 120), 4)
         
@@ -133,10 +181,11 @@ class Renderizador:
         piso_texto = self.fuente.render(f"Piso {piso_actual}", True, BLANCO)
         self.ventana.blit(piso_texto, (panel_x + 30, 125))
         
-        # Panel de piso en el lado derecho - Mejor posicionado
-        piso_panel_x = self.ancho - 400
-        pygame.draw.rect(self.ventana, (70, 50, 90), (piso_panel_x, 80, 320, 120))
-        pygame.draw.rect(self.ventana, DORADO, (piso_panel_x, 80, 320, 120), 4)
+        # Panel de piso en el lado derecho - Centrado
+        piso_panel_ancho = self._ajustar_tamano_elemento(320)
+        piso_panel_x = self.ancho - piso_panel_ancho - 50
+        pygame.draw.rect(self.ventana, (70, 50, 90), (piso_panel_x, 80, piso_panel_ancho, 120))
+        pygame.draw.rect(self.ventana, DORADO, (piso_panel_x, 80, piso_panel_ancho, 120), 4)
         
         piso_derecho = self.fuente.render(f"Piso {piso_actual}", True, DORADO)
         self.ventana.blit(piso_derecho, (piso_panel_x + 30, 90))
@@ -146,9 +195,9 @@ class Renderizador:
             tienda_disponible = self.fuente_pequena.render("¡Tienda disponible!", True, VERDE)
             self.ventana.blit(tienda_disponible, (piso_panel_x + 30, 125))
         
-        # Objetos disponibles con cajas decorativas - Distribuidos mejor para 1920x1080
-        objetos_x = 80
+        # Objetos disponibles con cajas decorativas - Centrados
         objetos_ancho = self.ancho - 160
+        objetos_x = 80
         
         for i, objeto in enumerate(tienda.objetos_disponibles):
             y = 230 + i * 130
@@ -172,19 +221,25 @@ class Renderizador:
             efecto_texto = self.fuente_pequena.render(f"Efecto: {objeto.efecto}", True, AMARILLO)
             self.ventana.blit(efecto_texto, (objetos_x + 20, y + 70))
         
-        # Instrucciones con fondo mejorado - Posicionadas en la parte inferior para 1920x1080
+        # Instrucciones centradas en la parte inferior
         instrucciones = self.fuente.render("Flechas para navegar | Enter para comprar | T para salir", True, AMARILLO)
-        fondo_inst = pygame.Rect(80, 980, instrucciones.get_width() + 60, 60)
+        fondo_inst = pygame.Rect(
+            self._centrar_horizontal(instrucciones.get_width() + 60),
+            self.alto - 80,
+            instrucciones.get_width() + 60,
+            60
+        )
         pygame.draw.rect(self.ventana, (20, 20, 20), fondo_inst)
         pygame.draw.rect(self.ventana, AMARILLO, fondo_inst, 4)
-        self.ventana.blit(instrucciones, (110, 1000))
+        self.ventana.blit(instrucciones, (fondo_inst.x + 30, fondo_inst.y + 20))
         
-        # Información adicional
+        # Información adicional centrada
         info_texto = self.fuente_pequena.render("Compra objetos para mejorar tu personaje", True, GRIS)
-        self.ventana.blit(info_texto, (self.ancho - 450, 1020))
+        info_x = self._centrar_horizontal(info_texto.get_width())
+        self.ventana.blit(info_texto, (info_x, self.alto - 30))
     
     def dibujar_maestro_habilidades(self, maestro_habilidades, jugador, monedas_oro, piso_actual, mejora_seleccionada):
-        # Fondo del maestro mejorado para 1920x1080
+        # Fondo del maestro mejorado
         for y in range(self.alto):
             color = (
                 int(30 + (y / self.alto) * 30),
@@ -193,15 +248,16 @@ class Renderizador:
             )
             pygame.draw.line(self.ventana, color, (0, y), (self.ancho, y))
         
-        # Título del maestro con sombra mejorada
+        # Título del maestro centrado
         titulo = self.fuente_grande.render("MAESTRO DE HABILIDADES", True, DORADO)
         sombra = self.fuente_grande.render("MAESTRO DE HABILIDADES", True, NEGRO)
-        self.ventana.blit(sombra, (self.ancho//2 - titulo.get_width()//2 + 4, 24))
-        self.ventana.blit(titulo, (self.ancho//2 - titulo.get_width()//2, 20))
+        titulo_x = self._centrar_horizontal(titulo.get_width())
+        self.ventana.blit(sombra, (titulo_x + 4, 24))
+        self.ventana.blit(titulo, (titulo_x, 20))
         
-        # Panel de información del jugador - Posicionado mejor para 1920x1080
-        panel_ancho = 600
-        panel_x = 80
+        # Panel de información del jugador - Centrado
+        panel_ancho = self._ajustar_tamano_elemento(600)
+        panel_x = self._centrar_horizontal(panel_ancho)
         pygame.draw.rect(self.ventana, (100, 50, 70), (panel_x, 80, panel_ancho, 120))
         pygame.draw.rect(self.ventana, DORADO, (panel_x, 80, panel_ancho, 120), 4)
         
@@ -211,10 +267,11 @@ class Renderizador:
         clase_texto = self.fuente.render(f"Clase: {jugador.clase.value}", True, BLANCO)
         self.ventana.blit(clase_texto, (panel_x + 30, 125))
         
-        # Panel de clase en el lado derecho - Mejor posicionado
-        clase_panel_x = self.ancho - 400
-        pygame.draw.rect(self.ventana, (100, 50, 70), (clase_panel_x, 80, 320, 120))
-        pygame.draw.rect(self.ventana, DORADO, (clase_panel_x, 80, 320, 120), 4)
+        # Panel de clase en el lado derecho - Centrado
+        clase_panel_ancho = self._ajustar_tamano_elemento(320)
+        clase_panel_x = self.ancho - clase_panel_ancho - 50
+        pygame.draw.rect(self.ventana, (100, 50, 70), (clase_panel_x, 80, clase_panel_ancho, 120))
+        pygame.draw.rect(self.ventana, DORADO, (clase_panel_x, 80, clase_panel_ancho, 120), 4)
         
         clase_derecho = self.fuente.render(f"Clase: {jugador.clase.value}", True, DORADO)
         self.ventana.blit(clase_derecho, (clase_panel_x + 30, 90))
@@ -223,11 +280,11 @@ class Renderizador:
         nivel_texto = self.fuente_pequena.render("Mejora tus habilidades", True, VERDE)
         self.ventana.blit(nivel_texto, (clase_panel_x + 30, 125))
         
-        # Mejoras disponibles con cajas decorativas - Distribuidos mejor para 1920x1080
+        # Mejoras disponibles con cajas decorativas - Centradas
         mejoras = maestro_habilidades.mejoras_disponibles.get(jugador.clase, [])
         
-        mejoras_x = 80
         mejoras_ancho = self.ancho - 160
+        mejoras_x = 80
         
         for i, mejora in enumerate(mejoras):
             y = 230 + i * 130
@@ -263,20 +320,26 @@ class Renderizador:
                     stats_texto = self.fuente_pequena.render(f"Bonus: +{mejora['defensa']} Defensa", True, AMARILLO)
                     self.ventana.blit(stats_texto, (mejoras_x + 20, y + 70))
         
-        # Instrucciones con fondo mejorado - Posicionadas en la parte inferior para 1920x1080
+        # Instrucciones centradas en la parte inferior
         instrucciones = self.fuente.render("Flechas para navegar | Enter para comprar | M para salir", True, AMARILLO)
-        fondo_inst = pygame.Rect(80, 980, instrucciones.get_width() + 60, 60)
+        fondo_inst = pygame.Rect(
+            self._centrar_horizontal(instrucciones.get_width() + 60),
+            self.alto - 80,
+            instrucciones.get_width() + 60,
+            60
+        )
         pygame.draw.rect(self.ventana, (20, 20, 20), fondo_inst)
         pygame.draw.rect(self.ventana, AMARILLO, fondo_inst, 4)
-        self.ventana.blit(instrucciones, (110, 1000))
+        self.ventana.blit(instrucciones, (fondo_inst.x + 30, fondo_inst.y + 20))
         
-        # Información adicional
+        # Información adicional centrada
         info_texto = self.fuente_pequena.render("Mejora tus habilidades para ser más poderoso", True, GRIS)
-        self.ventana.blit(info_texto, (self.ancho - 450, 1020))
+        info_x = self._centrar_horizontal(info_texto.get_width())
+        self.ventana.blit(info_texto, (info_x, self.alto - 30))
     
     def dibujar_batalla(self, jugador, enemigo, piso_actual, monedas_oro, mensaje, turno, 
                        habilidad_seleccionada, objeto_seleccionado_bolsa, jefe_derrotado_reciente):
-        # Fondo de batalla degradado mejorado para 1920x1080
+        # Fondo de batalla degradado mejorado
         for y in range(self.alto):
             color = (
                 int(15 + (y / self.alto) * 45),
@@ -285,13 +348,13 @@ class Renderizador:
             )
             pygame.draw.line(self.ventana, color, (0, y), (self.ancho, y))
         
-        # Panel superior de información - Optimizado para 1920x1080
+        # Panel superior de información - Centrado
         pygame.draw.rect(self.ventana, (45, 70, 45), (0, 0, self.ancho, 160))
         pygame.draw.rect(self.ventana, VERDE, (0, 0, self.ancho, 160), 4)
         
-        # Información del piso y oro - Centrados y mejor distribuidos
+        # Información del piso y oro - Centrados
         piso_texto = self.fuente_grande.render(f"Piso {piso_actual}", True, DORADO)
-        self.ventana.blit(piso_texto, (self.ancho//2 - piso_texto.get_width()//2, 40))
+        self.ventana.blit(piso_texto, (self._centrar_horizontal(piso_texto.get_width()), 40))
         
         oro_texto = self.fuente.render(f"Oro: {monedas_oro}", True, DORADO)
         self.ventana.blit(oro_texto, (self.ancho - 300, 40))
@@ -306,61 +369,63 @@ class Renderizador:
             maestro_texto = self.fuente.render("¡Maestro de Habilidades disponible! (M)", True, AZUL)
             self.ventana.blit(maestro_texto, (self.ancho - 450, 110))
         
-        # Indicador de jefe
+        # Indicador de jefe - Centrado
         if piso_actual % 10 == 0:
             jefe_texto = self.fuente_grande.render("¡JEFE!", True, ROSA)
-            self.ventana.blit(jefe_texto, (self.ancho//2 - jefe_texto.get_width()//2, 80))
+            self.ventana.blit(jefe_texto, (self._centrar_horizontal(jefe_texto.get_width()), 80))
         
-        # Información del jugador - Posicionado mejor para 1920x1080
+        # Información del jugador - Posicionado mejor
         if jugador:
-            self.dibujar_personaje(jugador, 100, 200, VERDE)
+            jugador_x = 100
+            self.dibujar_personaje(jugador, jugador_x, 200, VERDE)
         
-        # Información del enemigo - Posicionado mejor para 1920x1080
+        # Información del enemigo - Posicionado mejor
         if enemigo:
             color_enemigo = ROSA if enemigo.es_jefe else ROJO
-            self.dibujar_personaje(enemigo, self.ancho - 570, 200, color_enemigo)
+            enemigo_x = self.ancho - 570
+            self.dibujar_personaje(enemigo, enemigo_x, 200, color_enemigo)
         
-        # Área de batalla central - Optimizada para 1920x1080
-        area_ancho = 700
-        area_x = (self.ancho - area_ancho) // 2
+        # Área de batalla central - Centrada
+        area_ancho = self._ajustar_tamano_elemento(700)
+        area_x = self._centrar_horizontal(area_ancho)
         pygame.draw.rect(self.ventana, (70, 100, 70), (area_x, 480, area_ancho, 220))
         pygame.draw.rect(self.ventana, VERDE, (area_x, 480, area_ancho, 220), 4)
         
-        # Mensaje de batalla
+        # Mensaje de batalla - Centrado
         if mensaje:
             mensaje_texto = self.fuente.render(mensaje, True, BLANCO)
-            self.ventana.blit(mensaje_texto, (self.ancho//2 - mensaje_texto.get_width()//2, 500))
+            self.ventana.blit(mensaje_texto, (self._centrar_horizontal(mensaje_texto.get_width()), 500))
         
-        # Turno actual
+        # Turno actual - Centrado
         turno_texto = self.fuente.render(f"Turno: {turno.title()}", True, AMARILLO)
-        self.ventana.blit(turno_texto, (self.ancho//2 - turno_texto.get_width()//2, 550))
+        self.ventana.blit(turno_texto, (self._centrar_horizontal(turno_texto.get_width()), 550))
         
-        # Habilidades del jugador - Posicionadas mejor para 1920x1080
+        # Habilidades del jugador - Posicionadas mejor
         if turno == "jugador":
             self.dibujar_habilidades(jugador, habilidad_seleccionada)
             self.dibujar_bolsa_objetos(jugador, objeto_seleccionado_bolsa)
         
-        # Botones de acción - Centrados y mejor distribuidos para 1920x1080
+        # Botones de acción - Centrados
         if turno == "jugador":
-            boton_ancho = 320
-            boton_x = (self.ancho - boton_ancho) // 2
+            boton_ancho = self._ajustar_tamano_elemento(320)
+            boton_x = self._centrar_horizontal(boton_ancho)
             pygame.draw.rect(self.ventana, AZUL, (boton_x, 720, boton_ancho, 70))
             pygame.draw.rect(self.ventana, BLANCO, (boton_x, 720, boton_ancho, 70), 4)
             descanso_texto = self.fuente.render("Descansar (R)", True, BLANCO)
-            self.ventana.blit(descanso_texto, (self.ancho//2 - descanso_texto.get_width()//2, 745))
+            self.ventana.blit(descanso_texto, (self._centrar_horizontal(descanso_texto.get_width()), 745))
             
-            # Instrucciones adicionales
+            # Instrucciones adicionales - Centradas
             instrucciones = self.fuente_pequena.render("Flechas para seleccionar | Enter para atacar | O/I para objetos", True, AMARILLO)
-            self.ventana.blit(instrucciones, (self.ancho//2 - instrucciones.get_width()//2, 800))
+            self.ventana.blit(instrucciones, (self._centrar_horizontal(instrucciones.get_width()), 800))
     
     def dibujar_personaje(self, personaje, x, y, color):
         if not personaje:
             return
         
         try:
-            # Marco del personaje - Optimizado para 1920x1080
-            marco_ancho = 450
-            marco_alto = 240
+            # Marco del personaje - Optimizado
+            marco_ancho = self._ajustar_tamano_elemento(450)
+            marco_alto = self._ajustar_tamano_elemento(240)
             pygame.draw.rect(self.ventana, (40, 60, 40), (x-15, y-15, marco_ancho, marco_alto))
             pygame.draw.rect(self.ventana, color, (x-10, y-10, marco_ancho-10, marco_alto-10), 3)
             
@@ -381,7 +446,7 @@ class Renderizador:
             # Barra de vida
             if hasattr(personaje, 'vida_actual') and hasattr(personaje, 'vida_maxima'):
                 vida_porcentaje = personaje.vida_actual / personaje.vida_maxima
-                barra_vida_ancho = 300
+                barra_vida_ancho = self._ajustar_tamano_elemento(300)
                 barra_vida_x = x + 20
                 barra_vida_y = y + 90
                 
@@ -395,7 +460,7 @@ class Renderizador:
             # Barra de energía
             if hasattr(personaje, 'energia_actual') and hasattr(personaje, 'energia'):
                 energia_porcentaje = personaje.energia_actual / personaje.energia
-                barra_energia_ancho = 300
+                barra_energia_ancho = self._ajustar_tamano_elemento(300)
                 barra_energia_x = x + 20
                 barra_energia_y = y + 120
                 
@@ -408,7 +473,7 @@ class Renderizador:
             
             # Estadísticas del personaje - Distribuidas mejor
             y_stats = y + 160
-            stats_ancho = 200
+            stats_ancho = self._ajustar_tamano_elemento(200)
             
             # Columna izquierda
             if hasattr(personaje, 'ataque'):
@@ -454,8 +519,8 @@ class Renderizador:
             return
             
         try:
-            # Panel de habilidades - Optimizado para 1920x1080
-            panel_ancho = 550
+            # Panel de habilidades - Optimizado
+            panel_ancho = self._ajustar_tamano_elemento(550)
             panel_x = 100
             pygame.draw.rect(self.ventana, (50, 70, 50), (panel_x, 800, panel_ancho, 280))
             pygame.draw.rect(self.ventana, VERDE, (panel_x, 800, panel_ancho, 280), 4)
@@ -489,8 +554,8 @@ class Renderizador:
             return
             
         try:
-            # Panel de bolsa de objetos - Optimizado para 1920x1080
-            panel_ancho = 550
+            # Panel de bolsa de objetos - Optimizado
+            panel_ancho = self._ajustar_tamano_elemento(550)
             panel_x = self.ancho - panel_ancho - 100
             pygame.draw.rect(self.ventana, (50, 70, 50), (panel_x, 800, panel_ancho, 280))
             pygame.draw.rect(self.ventana, VERDE, (panel_x, 800, panel_ancho, 280), 4)

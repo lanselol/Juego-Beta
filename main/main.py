@@ -195,6 +195,17 @@ class Juego:
                         pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
                         # Actualizar dimensiones para pantalla completa
                         ANCHO, ALTO = 1920, 1080
+                    
+                    # Actualizar dimensiones en el renderizador y controlador de historia
+                    self.renderizador.ancho = ANCHO
+                    self.renderizador.alto = ALTO
+                    self.renderizador._ajustar_fuentes()
+                    self.controlador_historia.ancho = ANCHO
+                    self.controlador_historia.alto = ALTO
+                    if hasattr(self.controlador_historia, 'renderizador'):
+                        self.controlador_historia.renderizador.ancho = ANCHO
+                        self.controlador_historia.renderizador.alto = ALTO
+                        self.controlador_historia.renderizador._ajustar_fuentes()
                 
                 if self.estado == "seleccion_clase":
                     self.manejar_seleccion_clase(evento.key)
